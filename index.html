@@ -15,6 +15,7 @@ button{font-size:18px;padding:12px 18px;margin:6px;border:none;border-radius:10p
 .start{background:#673ab7;color:white}
 .check{background:#4CAF50;color:white}
 .battle{background:#e91e63;color:white}
+.back{background:#555;color:white}
 .result{text-align:center;font-size:22px;font-weight:bold;margin-top:10px}
 .score{text-align:center;font-size:20px;margin-top:10px}
 .hidden{display:none}
@@ -39,13 +40,12 @@ th{background:#f0f0f0}
 
 <h1>🏆 Campeonato de Ángulos</h1>
 
-<!-- SELECCION DE MODO -->
+<!-- SELECCIÓN DE MODO -->
 <div id="modeSelect">
 <h2>Selecciona modo</h2>
 <button class="mode" onclick="chooseChampionship(10)">Campeonato 10 aciertos</button>
 <button class="mode" onclick="chooseChampionship(15)">Campeonato 15 aciertos</button>
 <button class="mode" onclick="chooseChampionship(20)">Campeonato 20 aciertos</button>
-
 <br><br>
 <button class="battle" onclick="chooseBattle()">🔥 Modo batalla</button>
 </div>
@@ -56,6 +56,8 @@ th{background:#f0f0f0}
 <button class="diff" onclick="setDifficulty('facil')">Fácil</button>
 <button class="diff" onclick="setDifficulty('medio')">Medio</button>
 <button class="diff" onclick="setDifficulty('dificil')">Difícil</button>
+<br>
+<button class="back" onclick="goHome()">⬅ Volver</button>
 </div>
 
 <!-- NOMBRE -->
@@ -63,21 +65,23 @@ th{background:#f0f0f0}
 <h2>Nombre del alumno</h2>
 <input id="playerName" placeholder="Nombre">
 <button class="start" onclick="startGame()">Empezar</button>
+<br>
+<button class="back" onclick="goHome()">⬅ Volver</button>
 </div>
 
 <!-- JUEGO -->
 <div id="game" class="hidden">
 <p id="player"></p>
 <div class="exercise" id="exercise"></div>
-
 <div style="text-align:center">
 <input type="number" id="answer" placeholder="respuesta">
 <button class="check" onclick="checkAnswer()">Comprobar</button>
 </div>
-
 <div class="result" id="result"></div>
 <div class="score" id="score"></div>
 <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+<br>
+<button class="back" onclick="goHome()">⬅ Salir del juego</button>
 </div>
 
 <!-- UI BATALLA -->
@@ -115,7 +119,7 @@ let player=""
 let correct=0
 let degrees,minutes,mode
 
-let ranking=JSON.parse(localStorage.getItem('ranking_angulos_multiplayer')||"[]")
+let ranking=[]
 
 let battleMode=false
 let classPoints=0
@@ -123,166 +127,170 @@ let battleGoal=15
 let battleTime=600
 let timerInterval
 
-function saveRanking(){
- localStorage.setItem('ranking_angulos_multiplayer',JSON.stringify(ranking))
+function goHome(){
+
+// reset states
+battleMode=false
+correct=0
+classPoints=0
+clearInterval(timerInterval)
+
+// reset ranking
+ranking=[]
+updateRankingTable()
+
+// hide sections
+document.getElementById("game").classList.add("hidden")
+document.getElementById("difficultySelect").classList.add("hidden")
+document.getElementById("nameScreen").classList.add("hidden")
+document.getElementById("battleUI").classList.add("hidden")
+document.getElementById("podium").classList.add("hidden")
+
+// show main menu
+document.getElementById("modeSelect").classList.remove("hidden")
+
 }
 
-window.addEventListener("storage",()=>{
- ranking=JSON.parse(localStorage.getItem('ranking_angulos_multiplayer')||"[]")
- updateRankingTable()
-})
-
 function chooseChampionship(score){
- modeType="championship"
- targetScore=score
- document.getElementById("modeSelect").classList.add("hidden")
- document.getElementById("difficultySelect").classList.remove("hidden")
+modeType="championship"
+targetScore=score
+ranking=[]
+updateRankingTable()
+document.getElementById("modeSelect").classList.add("hidden")
+document.getElementById("difficultySelect").classList.remove("hidden")
 }
 
 function chooseBattle(){
- modeType="battle"
- document.getElementById("modeSelect").classList.add("hidden")
- document.getElementById("nameScreen").classList.remove("hidden")
+modeType="battle"
+ranking=[]
+updateRankingTable()
+document.getElementById("modeSelect").classList.add("hidden")
+document.getElementById("nameScreen").classList.remove("hidden")
 }
 
 function setDifficulty(diff){
- difficulty=diff
- document.getElementById("difficultySelect").classList.add("hidden")
- document.getElementById("nameScreen").classList.remove("hidden")
+difficulty=diff
+document.getElementById("difficultySelect").classList.add("hidden")
+document.getElementById("nameScreen").classList.remove("hidden")
 }
 
 function startGame(){
- player=document.getElementById("playerName").value
- if(!player) return
+player=document.getElementById("playerName").value
+if(!player) return
 
- correct=0
+correct=0
 
- document.getElementById("nameScreen").classList.add("hidden")
- document.getElementById("game").classList.remove("hidden")
+document.getElementById("nameScreen").classList.add("hidden")
+document.getElementById("game").classList.remove("hidden")
 
- document.getElementById("player").innerText="👤 "+player
+document.getElementById("player").innerText="👤 "+player
 
- if(modeType==="battle"){
- startBattle()
- }
+if(modeType==="battle"){startBattle()}
 
- updateScore()
- newExercise()
+updateScore()
+newExercise()
 }
 
 function startBattle(){
- battleMode=true
- classPoints=0
- battleTime=600
+battleMode=true
+classPoints=0
+battleTime=600
 
- document.getElementById("battleUI").classList.remove("hidden")
- document.getElementById("classScore").innerText=`Puntos de la clase: 0 / ${battleGoal}`
+document.getElementById("battleUI").classList.remove("hidden")
+document.getElementById("classScore").innerText=`Puntos de la clase: 0 / ${battleGoal}`
 
- startTimer()
+startTimer()
 }
 
 function startTimer(){
- timerInterval=setInterval(()=>{
- battleTime--
- let m=Math.floor(battleTime/60)
- let s=battleTime%60
- document.getElementById("timer").innerText=`${m}:${s.toString().padStart(2,'0')}`
+timerInterval=setInterval(()=>{
+battleTime--
+let m=Math.floor(battleTime/60)
+let s=battleTime%60
+document.getElementById("timer").innerText=`${m}:${s.toString().padStart(2,'0')}`
 
- if(battleTime<=0){
- clearInterval(timerInterval)
- endBattle()
- }
- },1000)
+if(battleTime<=0){
+clearInterval(timerInterval)
+endBattle()
+}
+},1000)
 }
 
 function endBattle(){
- document.getElementById("result").innerText="⏱ Fin del modo batalla"
- showPodium()
+document.getElementById("result").innerText="⏱ Fin del modo batalla"
+showPodium()
 }
 
 function newExercise(){
- if(difficulty==='facil'){degrees=Math.floor(Math.random()*10)+1}
- if(difficulty==='medio'){degrees=Math.floor(Math.random()*40)+1}
- if(difficulty==='dificil'){degrees=Math.floor(Math.random()*120)+1}
+if(difficulty==='facil'){degrees=Math.floor(Math.random()*10)+1}
+if(difficulty==='medio'){degrees=Math.floor(Math.random()*40)+1}
+if(difficulty==='dificil'){degrees=Math.floor(Math.random()*120)+1}
 
- minutes=Math.floor(Math.random()*60)
- mode=Math.random()<0.5?'min':'hours'
+minutes=Math.floor(Math.random()*60)
+mode=Math.random()<0.5?'min':'hours'
 
- if(mode==='min'){
- document.getElementById("exercise").innerText=`${degrees}° ${minutes}′ → minutos`
- }
- else{
- document.getElementById("exercise").innerText=`${degrees}° ${minutes}′ → horas`
- }
+if(mode==='min'){document.getElementById("exercise").innerText=`${degrees}° ${minutes}′ → minutos`}
+else{document.getElementById("exercise").innerText=`${degrees}° ${minutes}′ → horas`}
 
- document.getElementById("answer").value=""
- document.getElementById("answer").focus()
+document.getElementById("answer").value=""
+document.getElementById("answer").focus()
 }
 
 function checkAnswer(){
- let user=parseFloat(document.getElementById("answer").value)
- let solution
+let user=parseFloat(document.getElementById("answer").value)
+let solution
 
- if(mode==='min'){solution=(degrees*60)+minutes}
- else{let totalMinutes=(degrees*60)+minutes;solution=parseFloat((totalMinutes/60).toFixed(2))}
+if(mode==='min'){solution=(degrees*60)+minutes}
+else{let totalMinutes=(degrees*60)+minutes;solution=parseFloat((totalMinutes/60).toFixed(2))}
 
- if(Math.abs(user-solution)<0.01){
- correct++
- document.getElementById("result").innerText="🎉 Correcto"
+if(Math.abs(user-solution)<0.01){
+correct++
+document.getElementById("result").innerText="🎉 Correcto"
 
- if(battleMode){
- classPoints++
- document.getElementById("classScore").innerText=`Puntos de la clase: ${classPoints} / ${battleGoal}`
- }
- }
- else{
- document.getElementById("result").innerText=`❌ ${solution}`
- }
+if(battleMode){
+classPoints++
+document.getElementById("classScore").innerText=`Puntos de la clase: ${classPoints} / ${battleGoal}`
+}
+}
+else{document.getElementById("result").innerText=`❌ ${solution}`}
 
- updateScore()
- updateRanking()
+updateScore()
+updateRanking()
 
- if(!battleMode && correct>=targetScore){
- showPodium()
- return
- }
+if(!battleMode && correct>=targetScore){showPodium();return}
+if(battleMode && classPoints>=battleGoal){endBattle();return}
 
- if(battleMode && classPoints>=battleGoal){
- endBattle()
- return
- }
-
- setTimeout(newExercise,500)
+setTimeout(newExercise,500)
 }
 
 function updateScore(){
- document.getElementById("score").innerText=`Aciertos: ${correct}/${targetScore}`
- document.getElementById("progressBar").style.width=(correct/targetScore*100)+"%"
+document.getElementById("score").innerText=`Aciertos: ${correct}/${targetScore}`
+document.getElementById("progressBar").style.width=(correct/targetScore*100)+"%"
 }
 
 function updateRanking(){
- let p=ranking.find(r=>r.name===player)
- if(p){p.score=correct}
- else{ranking.push({name:player,score:correct})}
+let p=ranking.find(r=>r.name===player)
+if(p){p.score=correct}
+else{ranking.push({name:player,score:correct})}
 
- ranking.sort((a,b)=>b.score-a.score)
- saveRanking()
- updateRankingTable()
+ranking.sort((a,b)=>b.score-a.score)
+updateRankingTable()
 }
 
 function updateRankingTable(){
- let body=document.getElementById("rankingBody")
- body.innerHTML=""
- ranking.forEach((r,i)=>{
- body.innerHTML+=`<tr><td>${i+1}</td><td>${r.name}</td><td>${r.score}</td></tr>`
- })
+let body=document.getElementById("rankingBody")
+body.innerHTML=""
+ranking.forEach((r,i)=>{
+body.innerHTML+=`<tr><td>${i+1}</td><td>${r.name}</td><td>${r.score}</td></tr>`
+})
 }
 
 function showPodium(){
- document.getElementById("podium").classList.remove("hidden")
- document.getElementById("firstName").innerText=ranking[0]?.name||"---"
- document.getElementById("secondName").innerText=ranking[1]?.name||"---"
- document.getElementById("thirdName").innerText=ranking[2]?.name||"---"
+document.getElementById("podium").classList.remove("hidden")
+
+document.getElementById("firstName").innerText=ranking[0]?.name||"---"
+document.getElementById("secondName").innerText=ranking[1]?.name||"---"
+document.getElementById("thirdName").innerText=ranking[2]?.name||"---"
 }
 
 updateRankingTable()
