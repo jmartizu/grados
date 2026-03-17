@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Campeonato de Ángulos</title>
+<style>
+body{font-family:Arial;background:linear-gradient(135deg,#4facfe,#00f2fe);margin:0}
+.container{max-width:1000px;margin:20px auto;background:white;padding:30px;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+h1{text-align:center}
+.exercise{font-size:30px;text-align:center;margin:25px 0;font-weight:bold}
+input{font-size:20px;padding:10px;border-radius:8px;border:2px solid #ddd;text-align:center}
+button{font-size:18px;padding:12px 18px;margin:6px;border:none;border-radius:10px;cursor:pointer}
+.mode{background:#2196F3;color:white}
+.diff{background:#ff9800;color:white}
+.start{background:#673ab7;color:white}
+.check{background:#4CAF50;color:white}
+.battle{background:#e91e63;color:white}
+.result{text-align:center;font-size:22px;font-weight:bold;margin-top:10px}
+.score{text-align:center;font-size:20px;margin-top:10px}
+.hidden{display:none}
+.progress{height:16px;background:#eee;border-radius:10px;margin-top:10px;overflow:hidden}
+.progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#4CAF50,#8BC34A);transition:.3s}
+table{width:100%;border-collapse:collapse;margin-top:20px}
+th,td{border-bottom:1px solid #ddd;padding:8px;text-align:center}
+th{background:#f0f0f0}
+.timer{font-size:26px;text-align:center;margin-top:10px;font-weight:bold}
+.classScore{font-size:28px;text-align:center;margin-top:10px;font-weight:bold}
+
+.podium{margin-top:40px;text-align:center}
+.podium-container{display:flex;justify-content:center;align-items:flex-end;gap:25px}
+.place{width:140px;color:white;border-radius:10px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-weight:bold}
+.first{height:180px;background:#FFD700}
+.second{height:140px;background:#C0C0C0}
+.third{height:120px;background:#CD7F32}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>🏆 Campeonato de Ángulos</h1>
+
+<!-- SELECCION DE MODO -->
+<div id="modeSelect">
+<h2>Selecciona modo</h2>
+<button class="mode" onclick="chooseChampionship(10)">Campeonato 10 aciertos</button>
+<button class="mode" onclick="chooseChampionship(15)">Campeonato 15 aciertos</button>
+<button class="mode" onclick="chooseChampionship(20)">Campeonato 20 aciertos</button>
+
+<br><br>
+<button class="battle" onclick="chooseBattle()">🔥 Modo batalla</button>
+</div>
+
+<!-- DIFICULTAD -->
+<div id="difficultySelect" class="hidden">
+<h2>Elige dificultad</h2>
+<button class="diff" onclick="setDifficulty('facil')">Fácil</button>
+<button class="diff" onclick="setDifficulty('medio')">Medio</button>
+<button class="diff" onclick="setDifficulty('dificil')">Difícil</button>
+</div>
+
+<!-- NOMBRE -->
+<div id="nameScreen" class="hidden">
+<h2>Nombre del alumno</h2>
+<input id="playerName" placeholder="Nombre">
+<button class="start" onclick="startGame()">Empezar</button>
+</div>
+
+<!-- JUEGO -->
+<div id="game" class="hidden">
+<p id="player"></p>
+<div class="exercise" id="exercise"></div>
+
+<div style="text-align:center">
+<input type="number" id="answer" placeholder="respuesta">
+<button class="check" onclick="checkAnswer()">Comprobar</button>
+</div>
+
+<div class="result" id="result"></div>
+<div class="score" id="score"></div>
+<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+</div>
+
+<!-- UI BATALLA -->
+<div id="battleUI" class="hidden">
+<div class="timer" id="timer">10:00</div>
+<div class="classScore" id="classScore">Puntos de la clase: 0 / 15</div>
+</div>
+
+<!-- RANKING -->
+<h2>📊 Ranking</h2>
+<table>
+<thead><tr><th>#</th><th>Alumno</th><th>Puntos</th></tr></thead>
+<tbody id="rankingBody"></tbody>
+</table>
+
+<!-- PODIUM -->
+<div id="podium" class="podium hidden">
+<h2>🏆 Podium</h2>
+<div class="podium-container">
+<div class="place second"><span id="secondName">---</span>🥈</div>
+<div class="place first"><span id="firstName">---</span>🥇</div>
+<div class="place third"><span id="thirdName">---</span>🥉</div>
+</div>
+</div>
+
+</div>
+
+<script>
+
+let modeType="championship"
+let targetScore=10
+let difficulty="facil"
+
+let player=""
+let correct=0
+let degrees,minutes,mode
+
+let ranking=JSON.parse(localStorage.getItem('ranking_angulos_multiplayer')||"[]")
+
+let battleMode=false
+let classPoints=0
+let battleGoal=15
+let battleTime=600
+let timerInterval
+
+function saveRanking(){
+ localStorage.setItem('ranking_angulos_multiplayer',JSON.stringify(ranking))
+}
+
+window.addEventListener("storage",()=>{
+ ranking=JSON.parse(localStorage.getItem('ranking_angulos_multiplayer')||"[]")
+ updateRankingTable()
+})
+
+function chooseChampionship(score){
+ modeType="championship"
+ targetScore=score
+ document.getElementById("modeSelect").classList.add("hidden")
+ document.getElementById("difficultySelect").classList.remove("hidden")
+}
+
+function chooseBattle(){
+ modeType="battle"
+ document.getElementById("modeSelect").classList.add("hidden")
+ document.getElementById("nameScreen").classList.remove("hidden")
+}
+
+function setDifficulty(diff){
+ difficulty=diff
+ document.getElementById("difficultySelect").classList.add("hidden")
+ document.getElementById("nameScreen").classList.remove("hidden")
+}
+
+function startGame(){
+ player=document.getElementById("playerName").value
+ if(!player) return
+
+ correct=0
+
+ document.getElementById("nameScreen").classList.add("hidden")
+ document.getElementById("game").classList.remove("hidden")
+
+ document.getElementById("player").innerText="👤 "+player
+
+ if(modeType==="battle"){
+ startBattle()
+ }
+
+ updateScore()
+ newExercise()
+}
+
+function startBattle(){
+ battleMode=true
+ classPoints=0
+ battleTime=600
+
+ document.getElementById("battleUI").classList.remove("hidden")
+ document.getElementById("classScore").innerText=`Puntos de la clase: 0 / ${battleGoal}`
+
+ startTimer()
+}
+
+function startTimer(){
+ timerInterval=setInterval(()=>{
+ battleTime--
+ let m=Math.floor(battleTime/60)
+ let s=battleTime%60
+ document.getElementById("timer").innerText=`${m}:${s.toString().padStart(2,'0')}`
+
+ if(battleTime<=0){
+ clearInterval(timerInterval)
+ endBattle()
+ }
+ },1000)
+}
+
+function endBattle(){
+ document.getElementById("result").innerText="⏱ Fin del modo batalla"
+ showPodium()
+}
+
+function newExercise(){
+ if(difficulty==='facil'){degrees=Math.floor(Math.random()*10)+1}
+ if(difficulty==='medio'){degrees=Math.floor(Math.random()*40)+1}
+ if(difficulty==='dificil'){degrees=Math.floor(Math.random()*120)+1}
+
+ minutes=Math.floor(Math.random()*60)
+ mode=Math.random()<0.5?'min':'hours'
+
+ if(mode==='min'){
+ document.getElementById("exercise").innerText=`${degrees}° ${minutes}′ → minutos`
+ }
+ else{
+ document.getElementById("exercise").innerText=`${degrees}° ${minutes}′ → horas`
+ }
+
+ document.getElementById("answer").value=""
+ document.getElementById("answer").focus()
+}
+
+function checkAnswer(){
+ let user=parseFloat(document.getElementById("answer").value)
+ let solution
+
+ if(mode==='min'){solution=(degrees*60)+minutes}
+ else{let totalMinutes=(degrees*60)+minutes;solution=parseFloat((totalMinutes/60).toFixed(2))}
+
+ if(Math.abs(user-solution)<0.01){
+ correct++
+ document.getElementById("result").innerText="🎉 Correcto"
+
+ if(battleMode){
+ classPoints++
+ document.getElementById("classScore").innerText=`Puntos de la clase: ${classPoints} / ${battleGoal}`
+ }
+ }
+ else{
+ document.getElementById("result").innerText=`❌ ${solution}`
+ }
+
+ updateScore()
+ updateRanking()
+
+ if(!battleMode && correct>=targetScore){
+ showPodium()
+ return
+ }
+
+ if(battleMode && classPoints>=battleGoal){
+ endBattle()
+ return
+ }
+
+ setTimeout(newExercise,500)
+}
+
+function updateScore(){
+ document.getElementById("score").innerText=`Aciertos: ${correct}/${targetScore}`
+ document.getElementById("progressBar").style.width=(correct/targetScore*100)+"%"
+}
+
+function updateRanking(){
+ let p=ranking.find(r=>r.name===player)
+ if(p){p.score=correct}
+ else{ranking.push({name:player,score:correct})}
+
+ ranking.sort((a,b)=>b.score-a.score)
+ saveRanking()
+ updateRankingTable()
+}
+
+function updateRankingTable(){
+ let body=document.getElementById("rankingBody")
+ body.innerHTML=""
+ ranking.forEach((r,i)=>{
+ body.innerHTML+=`<tr><td>${i+1}</td><td>${r.name}</td><td>${r.score}</td></tr>`
+ })
+}
+
+function showPodium(){
+ document.getElementById("podium").classList.remove("hidden")
+ document.getElementById("firstName").innerText=ranking[0]?.name||"---"
+ document.getElementById("secondName").innerText=ranking[1]?.name||"---"
+ document.getElementById("thirdName").innerText=ranking[2]?.name||"---"
+}
+
+updateRankingTable()
+
+</script>
+</body>
+</html>
